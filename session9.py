@@ -13,7 +13,7 @@ def smart_divide(func):
 def logging_func_details(fn):
     cnt = 0
     def inner(*args, **kwargs):
-        # nonlocal cnt
+        nonlocal cnt
         cnt += 1
         time_detail = strftime("%a, %d %b %Y %H:%M:%S", gmtime())
         msg = (f'{fn.__name__} method has been called {cnt} times accessed at {time_detail} with arguments {args}')
