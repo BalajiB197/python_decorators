@@ -1,5 +1,9 @@
 from time import gmtime, strftime
 import time
+from operator import itemgetter 
+from html import escape
+from functools import wraps
+
 def smart_divide(func):
     def inner(a, b):
         time_sec = int(strftime("%S", gmtime())) 
@@ -20,42 +24,48 @@ def logging_func_details(fn):
         return fn(*args, **kwargs), msg
     return inner
 
+def authenticate(fn, current_password, user_password):
+    cnt = 0
+    if user_password == current_password():
+        def inner(*args, **kwargs):
+            nonlocal cnt
+            cnt += 1
+            print(f'{fn.__name__} was called {cnt} times')
+            return fn(*args, **kwargs)
+        return inner, True
+    else:
+        return 'You scamster!!'
 
+def privilege(fn):
+    '''
+    fn -> function name add, mul, div
+    my_dict -> param dict
+    return -> dict for each method names div, mul, add
+    '''
+    cnt = 0
+    plans = ['1user', '2user','6months', '12months']
+    def inner(customer):
+        nonlocal cnt, plans
+        if customer == 'basic':
+            index_list = [0,2]
+            return list(itemgetter(*index_list)(plans)) 
+        elif customer == 'vip':
+            index_list = [0,3]
+            return list(itemgetter(*index_list)(plans)) 
+        elif customer == 'vvip':
+            index_list = [1,2]
+            return list(itemgetter(*index_list)(plans)) 
+        elif customer == 'premium':
+            index_list = [1,3]
+            return list(itemgetter(*index_list)(plans)) 
+    return inner
 
+def singledispatch(fn):
+    registry = {}
+    registry[object] = fn
+    registry[int] = lambda a: f'{a}(<i>{str(hex(a))}</i>)'
+    registry[str] = lambda s: escape(s).replace('\n', '<br/>\n')
 
-
-
-
-
-
-# def set_password():
-#     password = ''
-#     def inner():
-#         nonlocal password
-#         if password == '':
-#             password = input()
-#         return password
-#     return inner
-
-# current_password = set_password()
-# current_password()
-
-# def authenticate(fn, current_password, user_password):
-#     cnt = 0
-#     if user_password == current_password():
-#         def inner(*args, **kwargs):
-#             nonlocal cnt
-#             cnt += 1
-#             print(f'{fn.__name__} was called {cnt} times')
-#             return fn(*args, **kwargs)
-#         return inner
-#     else:
-#         print('You scamster!!')
-
-# def add(a, b):
-#     return a + b
-# def mult(a, b):
-#     return a * b
-
-# auth_add = authenticate(add, current_password, 'secret')
-# print(auth_add(2, 3))
+    def inner(arg):
+        return registry.get(type(arg), registry[object])(arg)
+    return inner
